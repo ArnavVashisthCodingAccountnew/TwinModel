@@ -2,13 +2,13 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>Marine Ecosystem Digital Twin - Scientific Model</title>
+    <title>Simulation</title>
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
     <style>
         body {
             font-family: system-ui, -apple-system, sans-serif;
-            background-color: #f0f8ff;
+            background-color: #e9f5f9;
             margin: 0;
             padding: 20px;
             color: #333;
@@ -24,7 +24,7 @@
         }
 
         .card {
-            background: white;
+            background: #ffffff;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             padding: 20px;
@@ -36,18 +36,22 @@
             margin-bottom: 30px;
         }
 
-        .parameter-group {
+        h2 {
+            color: #004d80;
+        }
+
+        .parameter-group, .live-readings-group {
             margin-bottom: 20px;
         }
 
-        .parameter-row {
+        .parameter-row, .live-row {
             display: flex;
             align-items: center;
-            margin: 15px 0;
+            margin: 10px 0;
             gap: 15px;
         }
 
-        .parameter-label {
+        .parameter-label, .live-label {
             flex: 1;
             font-weight: 500;
         }
@@ -69,32 +73,20 @@
             cursor: pointer;
         }
 
-        .value-display {
+        .value-display, .live-value {
             flex: 0.5;
             min-width: 80px;
             text-align: right;
             font-family: monospace;
+            font-size: 1.1em;
         }
 
-        .scientific-notes {
-            font-size: 0.9em;
+        .live-readings-group {
+            background: #f0f8ff;
             padding: 15px;
-            background: #f8f9fa;
+            border-radius: 8px;
             border-left: 4px solid #005b96;
-            margin-top: 15px;
         }
-
-        .status-indicator {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-right: 6px;
-        }
-
-        .health-optimal { background: #00c853; }
-        .health-warning { background: #ffd600; }
-        .health-critical { background: #ff3d00; }
 
         .chart-container {
             height: 300px;
@@ -106,40 +98,44 @@
 <h1>Marine Ecosystem Digital Twin - Scientific Model</h1>
 <div class="container">
     <div class="card">
-        <h2>Environmental Parameters</h2>
+        <h2>Live Readings</h2>
+        <div class="live-readings-group">
+            <div class="live-row">
+                <span class="live-label">Temperature:</span>
+                <span id="liveTemp" class="live-value">Loading...</span>
+            </div>
+            <div class="live-row">
+                <span class="live-label">Wave Height:</span>
+                <span id="liveWave" class="live-value">Loading...</span>
+            </div>
+            <div class="live-row">
+                <span class="live-label">Current Speed:</span>
+                <span id="liveCurrent" class="live-value">Loading...</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Simulation Parameters</h2>
         <div class="parameter-group">
             <div class="parameter-row">
                 <span class="parameter-label">Temperature (°C)</span>
-                <input type="range" id="tempSlider" min="20" max="35" step="0.1" class="slider" value="26">
+                <input type="range" id="tempSlider" min="1" max="45" step="0.1" class="slider" value="26">
                 <span id="tempValue" class="value-display">26.0°C</span>
             </div>
-            <div class="scientific-notes">
-                Thermal threshold: 26-28°C optimal (Berkelmans 2004)
-                Bleaching risk >30°C for >3 days
-            </div>
-        </div>
-
-        <div class="parameter-group">
             <div class="parameter-row">
                 <span class="parameter-label">Wave Height (m)</span>
                 <input type="range" id="waveSlider" min="0" max="8" step="0.1" class="slider" value="1">
                 <span id="waveValue" class="value-display">1.0m</span>
             </div>
-            <div class="scientific-notes">
-                Mechanical threshold: Critical >4m (Madin & Connolly 2006)
-                Colony dislodgement risk increases exponentially
-            </div>
-        </div>
-
-        <div class="parameter-group">
             <div class="parameter-row">
                 <span class="parameter-label">Current Speed (m/s)</span>
                 <input type="range" id="currentSlider" min="0" max="2" step="0.05" class="slider" value="0.2">
                 <span id="currentValue" class="value-display">0.20m/s</span>
             </div>
-            <div class="scientific-notes">
-                Optimal flow: 0.1-0.3 m/s (Sebens & Done 1992)
-                Affects nutrient delivery and sediment removal
+            <div class="parameter-row">
+                <span class="parameter-label">Location</span>
+                <span id="" class="value-display">Point Nemo, Pacific ocean</span>
             </div>
         </div>
     </div>
@@ -149,44 +145,55 @@
         <div class="chart-container">
             <canvas id="healthChart"></canvas>
         </div>
-        <div class="scientific-notes">
-            Based on:
-            - Thermal stress modeling (Berkelmans et al. 2004)
-            - Wave impact studies (Madin & Connolly 2006)
-            - Flow optimization research (Sebens & Done 1992)
-            - Fish-coral relationship studies (Graham et al. 2006)
-        </div>
     </div>
 </div>
 
 <script>
-    // Scientifically validated calculation functions
+    async function fetchDataAndUpdateUI() {
+        try {
+            const response = await fetch('https://data.api.xweather.com/maritime/-48.8767, -123.3933?filter=1hr&client_id=4sD10XudIcr6dgFi4CXC9&client_secret=ZxllrpDmkaiUzPBiV5T8AuhZfFuHQ6Pibj4nsVt4');
+            const data = await response.json();
+            console.log(response);
+            if (data.success && data.response[0] && data.response[0].periods[0]) {
+                const latest = data.response[0].periods[0];
+
+                // Update live readings
+                document.getElementById('liveTemp').textContent = `${latest.seaSurfaceTemperatureC}°C`;
+                document.getElementById('liveWave').textContent = `${latest.significantWaveHeightM}m`;
+                document.getElementById('liveCurrent').textContent = `${latest.seaCurrentSpeedMPS.toFixed(2)}m/s`;
+
+                // Update sliders for simulation
+                document.getElementById('tempSlider').value = latest.seaSurfaceTemperatureC;
+                document.getElementById('waveSlider').value = latest.significantWaveHeightM;
+                document.getElementById('currentSlider').value = latest.seaCurrentSpeedMPS;
+
+                updateSimulation();
+            }
+        } catch (error) {
+            console.error('Error fetching live data:', error);
+        }
+    }
+
+    setInterval(fetchDataAndUpdateUI, 60000); // Refresh data every 60 seconds
+
     function calculateCoralHealth(temp, waveHeight, currentSpeed) {
         let health = 100;
-
-        // Temperature stress (Berkelmans et al. 2004)
         const optimalTemp = 26;
         const bleachingThreshold = 30;
 
         if (temp > optimalTemp) {
-            // Exponential stress response above optimal temperature
             const tempStress = temp - optimalTemp;
-            // Validated stress multiplier from research
             health -= Math.pow(tempStress, 2.1) * 5;
         }
 
-        // Wave stress (Madin & Connolly 2006)
         const criticalWaveHeight = 4;
         if (waveHeight > criticalWaveHeight) {
-            // Exponential increase in dislodgement risk
             const waveStress = waveHeight - criticalWaveHeight;
             health -= Math.pow(waveStress, 1.8) * 6;
         }
 
-        // Current stress (Sebens & Done 1992)
-        const optimalCurrent = 0.2; // m/s
+        const optimalCurrent = 0.2;
         const currentStress = Math.abs(currentSpeed - optimalCurrent);
-        // Linear response within studied range
         health -= currentStress * 25;
 
         return Math.max(0, Math.min(100, health));
@@ -195,22 +202,17 @@
     function calculateFishAbundance(coralHealth, currentSpeed) {
         let abundance = 100;
 
-        // Coral health dependency (Graham et al. 2006)
         if (coralHealth < 75) {
-            // Non-linear decline in fish populations
-            abundance = 100 * Math.pow(coralHealth/75, 1.5);
+            abundance = 100 * Math.pow(coralHealth / 75, 1.5);
         }
 
-        // Current impacts on fish behavior
         if (currentSpeed > 0.5) {
-            // Linear reduction in observed fish above threshold
             abundance -= (currentSpeed - 0.5) * 30;
         }
 
         return Math.max(0, Math.min(100, abundance));
     }
 
-    // Initialize charts
     const healthCtx = document.getElementById('healthChart').getContext('2d');
     const healthChart = new Chart(healthCtx, {
         type: 'line',
@@ -249,22 +251,18 @@
         }
     });
 
-    // Update simulation
     function updateSimulation() {
         const temp = parseFloat(document.getElementById('tempSlider').value);
         const waveHeight = parseFloat(document.getElementById('waveSlider').value);
         const currentSpeed = parseFloat(document.getElementById('currentSlider').value);
 
-        // Update displays
         document.getElementById('tempValue').textContent = temp.toFixed(1) + '°C';
         document.getElementById('waveValue').textContent = waveHeight.toFixed(1) + 'm';
         document.getElementById('currentValue').textContent = currentSpeed.toFixed(2) + 'm/s';
 
-        // Calculate ecosystem health
         const coralHealth = calculateCoralHealth(temp, waveHeight, currentSpeed);
         const fishAbundance = calculateFishAbundance(coralHealth, currentSpeed);
 
-        // Update time series
         healthChart.data.datasets[0].data.push(coralHealth);
         healthChart.data.datasets[1].data.push(fishAbundance);
 
@@ -276,13 +274,12 @@
         healthChart.update();
     }
 
-    // Event listeners
     document.getElementById('tempSlider').addEventListener('input', updateSimulation);
     document.getElementById('waveSlider').addEventListener('input', updateSimulation);
     document.getElementById('currentSlider').addEventListener('input', updateSimulation);
 
-    // Initial update
     updateSimulation();
+    fetchDataAndUpdateUI();
 </script>
 </body>
 </html>
