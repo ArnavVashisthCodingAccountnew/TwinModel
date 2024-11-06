@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Marine Ecosystem Digital Twin</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Chart.js for graph visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        .container1{
+            display:flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+        }
+        body {
+            font-family: "Roboto", sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f5;
+            margin: 0;
+        }
+
+        h1 {
+            color: #0077be;
+            font-weight: 700;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1000px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            max-width: 450px;
+            width: 90vw;
+            margin: 20px;
+            text-align: center;
+            height: 90%;
+        }
+
+        .slider-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            font-size: 1.1em;
+        }
+
+        .label {
+            font-weight: 500;
+        }
+
+        .slider {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Marine Ecosystem Digital Twin</h1>
+<div class="container">
+    <div class="card">
+        <h2>Current Ecosystem Data</h2>
+        <canvas id="currentDataChart"></canvas>
+    </div>
+    <div class="container1">
+        <div id="parameter-controls" class="card">
+            <h2>Adjust Simulation Parameters</h2>
+            <div class="slider-row">
+                <label class="label">Sea Temperature (°C)</label>
+                <input type="range" id="tempSlider" min="5" max="30" step="0.1" class="slider" oninput="updateSimulation()">
+                <span id="tempValue">15°C</span>
+            </div>
+            <div class="slider-row">
+                <label class="label">Wave Height (m)</label>
+                <input type="range" id="waveSlider" min="0" max="10" step="0.1" class="slider" oninput="updateSimulation()">
+                <span id="waveValue">2m</span>
+            </div>
+            <div class="slider-row">
+                <label class="label">Current Speed (KTS)</label>
+                <input type="range" id="currentSlider" min="0" max="5" step="0.1" class="slider" oninput="updateSimulation()">
+                <span id="currentValue">1 KTS</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Simulated Impact</h2>
+            <canvas id="impactChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+    let liveData = {
+        temperature: 15,
+        waveHeight: 2,
+        currentSpeed: 1,
+        coralHealth: 80,
+        fishPopulation: 90
+    };
+
+    // Set up the current data chart to show live data from the API
+    const currentCtx = document.getElementById('currentDataChart').getContext('2d');
+    const currentDataChart = new Chart(currentCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Sea Temperature (°C)', 'Wave Height (m)', 'Current Speed (KTS)'],
+            datasets: [
+                {
+                    label: 'Current Value',
+                    data: [liveData.temperature, liveData.waveHeight, liveData.currentSpeed],
+                    backgroundColor: ['#ff6384', '#36a2eb', '#4bc0c0']
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+
+    // Set up the simulated impact chart for ecosystem health
+    const impactCtx = document.getElementById('impactChart').getContext('2d');
+    const impactChart = new Chart(impactCtx, {
+        type: 'line',
+        data: {
+            labels: ['Baseline', 'After Adjustment'],
+            datasets: [
+                {
+                    label: 'Coral Health (%)',
+                    data: [liveData.coralHealth, liveData.coralHealth],
+                    borderColor: '#ff6384',
+                    backgroundColor: 'rgba(255,99,132,0.2)',
+                    fill: true
+                },
+                {
+                    label: 'Fish Population (%)',
+                    data: [liveData.fishPopulation, liveData.fishPopulation],
+                    borderColor: '#36a2eb',
+                    backgroundColor: 'rgba(54,162,235,0.2)',
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true, max: 100 }
+            }
+        }
+    });
+
+    // Function to update simulation values and visualize changes
+    function updateSimulation() {
+        const tempSlider = document.getElementById('tempSlider');
+        const waveSlider = document.getElementById('waveSlider');
+        const currentSlider = document.getElementById('currentSlider');
+
+        document.getElementById('tempValue').textContent = tempSlider.value + '°C';
+        document.getElementById('waveValue').textContent = waveSlider.value + 'm';
+        document.getElementById('currentValue').textContent = currentSlider.value + ' KTS';
+
+        const temp = parseFloat(tempSlider.value);
+        const waveHeight = parseFloat(waveSlider.value);
+        const currentSpeed = parseFloat(currentSlider.value);
+
+        let coralHealth = liveData.coralHealth - (temp > 25 ? (temp - 25) * 2 : 0) - (waveHeight > 5 ? (waveHeight - 5) * 3 : 0);
+        coralHealth = Math.max(0, coralHealth);
+
+        let fishPopulation = liveData.fishPopulation - (currentSpeed > 3 ? (currentSpeed - 3) * 5 : 0);
+        fishPopulation = Math.max(0, fishPopulation);
+
+        impactChart.data.datasets[0].data[1] = coralHealth;
+        impactChart.data.datasets[1].data[1] = fishPopulation;
+        impactChart.update();
+    }
+
+    function initializeData() {
+        fetch('https://data.api.xweather.com/maritime/-48.8767,-123.3933?filter=1hr&client_id=4sD10XudIcr6dgFi4CXC9&client_secret=ZxllrpDmkaiUzPBiV5T8AuhZfFuHQ6Pibj4nsVt4')
+            .then(response => response.json())
+            .then(json => {
+                if (json.success) {
+                    const latestPeriod = json.response[0].periods[0];
+
+                    // Update the live data with API values
+                    liveData.temperature = latestPeriod.seaSurfaceTemperatureC;
+                    liveData.waveHeight = latestPeriod.significantWaveHeightM;
+                    liveData.currentSpeed = latestPeriod.seaCurrentSpeedKTS;
+
+                    // Update the slider values based on fetched data
+                    document.getElementById('tempSlider').value = liveData.temperature;
+                    document.getElementById('waveSlider').value = liveData.waveHeight;
+                    document.getElementById('currentSlider').value = liveData.currentSpeed;
+
+                    // Update the charts with live data
+                    currentDataChart.data.datasets[0].data = [
+                        liveData.temperature,
+                        liveData.waveHeight,
+                        liveData.currentSpeed
+                    ];
+                    currentDataChart.update();
+
+                    // Update the simulation based on live data
+                    updateSimulation();
+                }
+            })
+            .catch(error => console.error('Error fetching data:', error));
+    }
+
+    window.onload = function() {
+        initializeData();
+    };
+</script>
+
+</body>
+</html>
